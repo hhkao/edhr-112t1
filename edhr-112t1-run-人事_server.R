@@ -7516,19 +7516,19 @@ flag95 <- flag_person_wide_flag95 %>%
 # flag96: 校內一級主管（主任）原則由專任教職員擔（兼）任。 -------------------------------------------------------------------
 flag_person <- drev_person_1
 
-#職稱為"主任"且聘任類別不為專任或代理(私校暫允許代理教師當主任，公校再評估)
+#職稱為"主任"且聘任類別不為專任(這學期都抓出來，再審酌是否請學校改)
 flag_person$err_flag <- 0
 flag_person$err_flag <- if_else((grepl("主任$", flag_person$admintitle0) | 
                                  grepl("主任$", flag_person$admintitle1) | 
                                  grepl("主任$", flag_person$admintitle2) | 
                                  grepl("主任$", flag_person$admintitle3)) 
-                                & (!flag_person$emptype %in% c("專任", "代理", "代理(連)")) , 1, flag_person$err_flag)
+                                & (flag_person$emptype != "專任") , 1, flag_person$err_flag)
 
 #加註
-flag_person$name <- if_else(grepl("主任$", flag_person$admintitle0) & !flag_person$emptype %in% c("專任", "代理", "代理(連)"), paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit0, flag_person$admintitle0, "）", sep = ""), flag_person$name)
-flag_person$name <- if_else(grepl("主任$", flag_person$admintitle1) & !flag_person$emptype %in% c("專任", "代理", "代理(連)"), paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit1, flag_person$admintitle1, "）", sep = ""), flag_person$name)
-flag_person$name <- if_else(grepl("主任$", flag_person$admintitle2) & !flag_person$emptype %in% c("專任", "代理", "代理(連)"), paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit2, flag_person$admintitle2, "）", sep = ""), flag_person$name)
-flag_person$name <- if_else(grepl("主任$", flag_person$admintitle3) & !flag_person$emptype %in% c("專任", "代理", "代理(連)"), paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit3, flag_person$admintitle3, "）", sep = ""), flag_person$name)
+flag_person$name <- if_else(grepl("主任$", flag_person$admintitle0) & flag_person$emptype != "專任", paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit0, flag_person$admintitle0, "）", sep = ""), flag_person$name)
+flag_person$name <- if_else(grepl("主任$", flag_person$admintitle1) & flag_person$emptype != "專任", paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit1, flag_person$admintitle1, "）", sep = ""), flag_person$name)
+flag_person$name <- if_else(grepl("主任$", flag_person$admintitle2) & flag_person$emptype != "專任", paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit2, flag_person$admintitle2, "）", sep = ""), flag_person$name)
+flag_person$name <- if_else(grepl("主任$", flag_person$admintitle3) & flag_person$emptype != "專任", paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit3, flag_person$admintitle3, "）", sep = ""), flag_person$name)
 flag_person$name <- gsub("；）", replacement = "）", flag_person$name)
 flag_person$name <- gsub("（）", replacement = "", flag_person$name)
 
@@ -7670,7 +7670,7 @@ if (dim(flag_person %>% subset(err_flag == 1))[1] != 0){
   }
 }
 
-# flag98: 跨校資料 相同身分證但姓名不同 -------------------------------------------------------------------
+# flag98: 右欄所列人員身分識別碼與其他學校重複，且姓名與填列資料不同。 -------------------------------------------------------------------
 #這裡是撈所有學校的資料來比對
 flag_person <- drev_person %>%
   select(c("organization_id", "edu_name2", "idnumber", "name", "source")) %>%
@@ -7762,10 +7762,6 @@ flag_person$err_flag_99 <- flag_person$err_flag1 + flag_person$err_flag2 + flag_
 
 flag_person$err_flag <- 0
 flag_person$err_flag <- if_else(flag_person$err_flag_99 != 0, 1, flag_person$err_flag)
-
-#test
-flag_person_test <- flag_person %>%
-  subset(err_flag != 0)
 
 #加註
 flag_person$name <- paste(flag_person$name, "（", " ", sep = "")
