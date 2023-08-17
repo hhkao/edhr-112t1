@@ -7516,19 +7516,19 @@ flag95 <- flag_person_wide_flag95 %>%
 # flag96: 校內一級主管（主任）原則由專任教職員擔（兼）任。 -------------------------------------------------------------------
 flag_person <- drev_person_1
 
-#職稱為"主任"且聘任類別不為專任或代理(私校暫允許代理教師當主任，公校再評估)
+#職稱為"主任"且聘任類別不為專任(這學期都抓出來，再審酌是否請學校改)
 flag_person$err_flag <- 0
 flag_person$err_flag <- if_else((grepl("主任$", flag_person$admintitle0) | 
                                  grepl("主任$", flag_person$admintitle1) | 
                                  grepl("主任$", flag_person$admintitle2) | 
                                  grepl("主任$", flag_person$admintitle3)) 
-                                & (!flag_person$emptype %in% c("專任", "代理", "代理(連)")) , 1, flag_person$err_flag)
+                                & (flag_person$emptype != "專任") , 1, flag_person$err_flag)
 
 #加註
-flag_person$name <- if_else(grepl("主任$", flag_person$admintitle0) & !flag_person$emptype %in% c("專任", "代理", "代理(連)"), paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit0, flag_person$admintitle0, "）", sep = ""), flag_person$name)
-flag_person$name <- if_else(grepl("主任$", flag_person$admintitle1) & !flag_person$emptype %in% c("專任", "代理", "代理(連)"), paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit1, flag_person$admintitle1, "）", sep = ""), flag_person$name)
-flag_person$name <- if_else(grepl("主任$", flag_person$admintitle2) & !flag_person$emptype %in% c("專任", "代理", "代理(連)"), paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit2, flag_person$admintitle2, "）", sep = ""), flag_person$name)
-flag_person$name <- if_else(grepl("主任$", flag_person$admintitle3) & !flag_person$emptype %in% c("專任", "代理", "代理(連)"), paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit3, flag_person$admintitle3, "）", sep = ""), flag_person$name)
+flag_person$name <- if_else(grepl("主任$", flag_person$admintitle0) & flag_person$emptype != "專任", paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit0, flag_person$admintitle0, "）", sep = ""), flag_person$name)
+flag_person$name <- if_else(grepl("主任$", flag_person$admintitle1) & flag_person$emptype != "專任", paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit1, flag_person$admintitle1, "）", sep = ""), flag_person$name)
+flag_person$name <- if_else(grepl("主任$", flag_person$admintitle2) & flag_person$emptype != "專任", paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit2, flag_person$admintitle2, "）", sep = ""), flag_person$name)
+flag_person$name <- if_else(grepl("主任$", flag_person$admintitle3) & flag_person$emptype != "專任", paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit3, flag_person$admintitle3, "）", sep = ""), flag_person$name)
 flag_person$name <- gsub("；）", replacement = "）", flag_person$name)
 flag_person$name <- gsub("（）", replacement = "", flag_person$name)
 
