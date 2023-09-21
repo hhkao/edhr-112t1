@@ -19,7 +19,7 @@ rm(list=ls())
 #資料讀取#
 #連線
 source("connection.R")
-#edhr <- dbConnect(odbc::odbc(), "CHER04-EDHR", timeout = 10)
+#edhr <- dbConnect(odbc::odbc(), "CHER04-TIPEDSTG", timeout = 10)
 
 #請輸入本次填報設定檔標題(字串需與標題完全相符，否則會找不到)
 title <- "112學年度上學期高級中等學校教育人力資源資料庫（全國學校人事）"
@@ -52,6 +52,14 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
 																						                                              WHERE title = '", department, "' AND  report_id = (SELECT id FROM [plat5_edhr].[dbo].[teacher_reports] 
 																												                                                                                      WHERE title = '", title, "'))))", sep = "")
 ) %>% as.character()
+
+
+#教員資料表尚未建立的判斷
+if(teacher_tablename == "character(0)"){
+  stop("教員資料表尚未建立，故不執行資料檢核")
+}else{
+  
+  
 
 #讀取教員資料表
 teacher <- dbGetQuery(edhr, 
@@ -90,6 +98,14 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
 																												                                                            WHERE title = '", title, "'))))", sep = "")
 ) %>% as.character()
 
+
+#職員(工)資料表尚未建立的判斷
+if(staff_tablename == "character(0)"){
+  stop("職員(工)資料表尚未建立，故不執行資料檢核")
+}else{
+  
+  
+
 #讀取職員(工)資料表
 staff <- dbGetQuery(edhr, 
                     paste("SELECT * FROM [rows].[dbo].[", staff_tablename, "] WHERE deleted_at IS NULL", sep = "")
@@ -124,6 +140,14 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
 																							                                                 WHERE title = '", department, "' AND  report_id = (SELECT id FROM [plat5_edhr].[dbo].[teacher_reports] 
 																												                                                            WHERE title = '", title, "'))))", sep = "")
 ) %>% as.character()
+
+
+#離退教職員(工)資料表尚未建立的判斷
+if(retire_tablename == "character(0)"){
+  stop("離退教職員(工)資料表尚未建立，故不執行資料檢核")
+}else{
+  
+  
 
 #讀取離退教職員(工)資料表
 retire <- dbGetQuery(edhr, 
@@ -1244,6 +1268,10 @@ view_flag8 <- distinct(flag_person, nation, .keep_all = TRUE) %>%
 flag_person$err_flag <- case_when(
   flag_person$nation == "外籍" ~ 1,
   flag_person$nation == "外國籍" ~ 1,
+  flag_person$nation == "國外" ~ 1,
+  flag_person$nation == "外國" ~ 1,
+  flag_person$nation == "國內" ~ 1,
+  grepl("雙重", flag_person$nation) ~ 1,
   flag_person$nation == "N" ~ 1,
   TRUE ~ 0
 )
@@ -7722,6 +7750,7 @@ flag_person <- flag_person %>%
                                 "TWN" = "本國", 
                                 "中華民國" = "本國", 
                                 "台灣" = "本國", 
+                                "臺灣" = "本國", 
                                 "大韓民國" = "韓國", 
                                 "SocialistRepublicofVietnam" = "越南", 
                                 "中國大陸" = "中國"))
@@ -7751,12 +7780,11 @@ flag_person_nation <- flag_person %>%
   filter(n_distinct(nation_recode) > 1) %>%
   ungroup() %>%
   mutate(err_flag_nation = 1)
-  
+
 #"國籍別"不合理的情況在flag8處理
 flag_person_nation <- flag_person_nation %>%
   left_join(flag_person_flag8, by = c( "idnumber")) %>%
   subset(err_flag_nation == 1 & is.na(err_flag)) %>%
-  select(-c("err_flag")) %>%
   select("organization_id", "idnumber", "err_flag_nation")
 
 #最高學位檢查
@@ -7950,8 +7978,82 @@ if (dim(flag_person %>% subset(err_flag == 1))[1] != 0){
     flag99$flag99 <- ""
   }
 }
+
+# flag100: 校長「本校到職前學校服務總年資」偏小。 -------------------------------------------------------------------
+flag_person <- drev_person_1 %>%
+  subset(source == "教員資料表")
+
+#本校到職前學校服務總年資
+flag_person$beoby <- substr(flag_person$beobdym, 1, 2) %>% as.numeric
+flag_person$beobm <- substr(flag_person$beobdym, 3, 4) %>% as.numeric
+
+flag_person$beob <- (flag_person$beoby + (flag_person$beobm / 12))
+
+flag_person$err_flag <- 0
+flag_person$err_flag <- if_else(flag_person$sertype == "校長" & flag_person$beob < 10, 1, flag_person$err_flag)
+
+#加註
+flag_person$err_flag_txt <- ""
+flag_person$err_flag_txt <- case_when(
+  flag_person$err_flag == 1 ~ paste(flag_person$name, "（本校到職前學校服務總年資：", flag_person$beobdym, "）", sep = ""),
+  TRUE ~ flag_person$err_flag_txt
+)
+
+if (dim(flag_person %>% subset(err_flag == 1))[1] != 0){
+  #根據organization_id + source，展開成寬資料(wide)
+  flag_person_wide_flag100 <- flag_person %>%
+    subset(select = c(organization_id, idnumber, err_flag_txt, edu_name2, source, err_flag)) %>%
+    subset(err_flag == 1) %>%
+    dcast(organization_id + source ~ err_flag_txt, value.var = "err_flag_txt")
+  
+  #合併所有name
+  temp <- colnames(flag_person_wide_flag100)[3 : length(colnames(flag_person_wide_flag100))]
+  flag_person_wide_flag100$flag100_r <- NA
+  for (i in temp){
+    flag_person_wide_flag100$flag100_r <- paste(flag_person_wide_flag100$flag100_r, flag_person_wide_flag100[[i]], sep = " ")
+  }
+  flag_person_wide_flag100$flag100_r <- gsub("NA ", replacement="", flag_person_wide_flag100$flag100_r)
+  flag_person_wide_flag100$flag100_r <- gsub(" NA", replacement="", flag_person_wide_flag100$flag100_r)
+  
+  #產生檢誤報告文字
+  flag100_temp <- flag_person_wide_flag100 %>%
+    group_by(organization_id) %>%
+    mutate(flag100_txt = paste(flag100_r, sep = ""), "") %>%
+    subset(select = c(organization_id, flag100_txt)) %>%
+    distinct(organization_id, flag100_txt)
+  
+  #根據organization_id，展開成寬資料(wide)
+  flag100 <- flag100_temp %>%
+    dcast(organization_id ~ flag100_txt, value.var = "flag100_txt")
+  
+  #合併教員資料表及職員(工)資料表報告文字
+  temp <- colnames(flag100)[2 : length(colnames(flag100))]
+  flag100$flag100 <- NA
+  for (i in temp){
+    flag100$flag100 <- paste(flag100$flag100, flag100[[i]], sep = "； ")
+  }
+  flag100$flag100 <- gsub("NA； ", replacement="", flag100$flag100)
+  flag100$flag100 <- gsub("； NA", replacement="", flag100$flag100)
+  
+  #產生檢誤報告文字
+  flag100 <- flag100 %>%
+    subset(select = c(organization_id, flag100)) %>%
+    distinct(organization_id, flag100) %>%
+    mutate(flag100 = paste(flag100, "（校長「本校到職前學校服務總年資」偏小，請確認校長之「本校到職日期」、「本校到職前學校服務總年資」。）", sep = ""))
+}else{
+  #偵測flag100是否存在。若不存在，則產生NA行
+  if('flag100' %in% ls()){
+    print("flag100")
+  }else{
+    flag100 <- drev_person_1 %>%
+      distinct(organization_id, .keep_all = TRUE) %>%
+      subset(select = c(organization_id))
+    flag100$flag100 <- ""
+  }
+}
+
 # 建立合併列印檔 -------------------------------------------------------------------
-temp <- c("flag2", "flag3", "flag6", "flag7", "flag8", "flag9", "flag15", "flag16", "flag18", "flag19", "flag20", "flag24", "flag39", "flag45", "flag47", "flag48", "flag49", "flag50", "flag51", "flag52", "flag57", "flag59", "flag62", "flag64", "flag80", "flag82", "flag83", "flag84", "flag85", "flag86", "flag89", "flag90", "flag91", "flag92", "flag93", "flag94", "flag95", "flag96", "flag97", "flag98", "flag99", "sp3", "sp5", "sp6")
+temp <- c("flag2", "flag3", "flag6", "flag7", "flag8", "flag9", "flag15", "flag16", "flag18", "flag19", "flag20", "flag24", "flag39", "flag45", "flag47", "flag48", "flag49", "flag50", "flag51", "flag52", "flag57", "flag59", "flag62", "flag64", "flag80", "flag82", "flag83", "flag84", "flag85", "flag86", "flag89", "flag90", "flag91", "flag92", "flag93", "flag94", "flag95", "flag96", "flag97", "flag98", "flag99", "flag100", "sp3", "sp5", "sp6")
 check02 <- merge(x = edu_name2, y = flag1, by = c("organization_id"), all.x = TRUE, all.y = TRUE)
 check02 <- merge(x = check02, y = flag2, by = c("organization_id"), all.x = TRUE, all.y = TRUE)
 check02 <- merge(x = check02, y = flag3, by = c("organization_id"), all.x = TRUE, all.y = TRUE)
@@ -7994,6 +8096,7 @@ check02 <- merge(x = check02, y = flag96, by = c("organization_id"), all.x = TRU
 check02 <- merge(x = check02, y = flag97, by = c("organization_id"), all.x = TRUE, all.y = TRUE)
 check02 <- merge(x = check02, y = flag98, by = c("organization_id"), all.x = TRUE, all.y = TRUE)
 check02 <- merge(x = check02, y = flag99, by = c("organization_id"), all.x = TRUE, all.y = TRUE)
+check02 <- merge(x = check02, y = flag100, by = c("organization_id"), all.x = TRUE, all.y = TRUE)
 check02 <- merge(x = check02, y = spe3, by = c("organization_id"), all.x = TRUE, all.y = TRUE)
 check02 <- merge(x = check02, y = spe5, by = c("organization_id"), all.x = TRUE, all.y = TRUE)
 check02 <- merge(x = check02, y = spe6, by = c("organization_id"), all.x = TRUE, all.y = TRUE)
@@ -8001,4 +8104,11 @@ check02 <- merge(x = check02, y = spe6, by = c("organization_id"), all.x = TRUE,
 #輸出檢核結果excel檔
 openxlsx :: write.xlsx(check02, file = "./dist/edhr-112t1-check_print-人事.xlsx", rowNames = FALSE, overwrite = TRUE)
 
-}
+} #本次無新資料的判斷
+
+
+} #離退教職員(工)資料表尚未建立的判斷
+
+} #職員(工)資料表尚未建立的判斷
+
+} #教員資料表尚未建立的判斷
