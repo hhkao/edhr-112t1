@@ -198,7 +198,7 @@ dis <- c(
   "361B09"
 )
 
-checkfile_server <- "\\\\192.168.110.245\\Plan_edhr\\教育部高級中等學校教育人力資源資料庫建置第7期計畫(1120201_1130731)\\檢核語法檔\\R\\自動化資料檢核結果\\edhr-112t1-check_print-人事(測試).xlsx" #[每次填報更改]請更改本次server匯出的檢核結果檔之路徑
+checkfile_server <- "\\\\192.168.110.245\\Plan_edhr\\教育部高級中等學校教育人力資源資料庫建置第7期計畫(1120201_1130731)\\檢核語法檔\\R\\自動化資料檢核結果\\edhr-112t1-check_print-人事.xlsx" #[每次填報更改]請更改本次server匯出的檢核結果檔之路徑
 check02_server <- readxl :: read_excel(checkfile_server)
 
 #審核同意的名單 = check02_server subset自己管區學校的名單
