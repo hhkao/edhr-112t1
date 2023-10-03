@@ -441,6 +441,12 @@ if(exists("data_retire_check_pre")){
 }
 
 #如果count及count_pre有值且count = count_pre代表沒有新資料，如果count有值且count_pre為NA則有新資料
+
+  #count_pre為NA的處理
+  data_teacher_check$count_pre[is.na(data_teacher_check$count_pre)] <- 0
+  data_staff_check$count_pre[is.na(data_staff_check$count_pre)] <- 0
+  data_retire_check$count_pre[is.na(data_retire_check$count_pre)] <- 0
+  
 if(all(data_teacher_check$count == data_teacher_check$count_pre) & 
    all(data_staff_check$count == data_staff_check$count_pre) & 
    all(data_retire_check$count == data_retire_check$count_pre) & 
