@@ -56,7 +56,7 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
 
 #教員資料表尚未建立的判斷
 if(teacher_tablename == "character(0)"){
-  stop("教員資料表尚未建立，故不執行資料檢核")
+  stop("The teacher table has not been created yet, so data validation will not be executed.")
 }else{
   
   
@@ -101,7 +101,7 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
 
 #職員(工)資料表尚未建立的判斷
 if(staff_tablename == "character(0)"){
-  stop("職員(工)資料表尚未建立，故不執行資料檢核")
+  stop("The staff table has not been created yet, so data validation will not be executed.")
 }else{
   
   
@@ -144,7 +144,7 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
 
 #離退教職員(工)資料表尚未建立的判斷
 if(retire_tablename == "character(0)"){
-  stop("離退教職員(工)資料表尚未建立，故不執行資料檢核")
+  stop("The retire table has not been created yet, so data validation will not be executed.")
 }else{
   
   
@@ -443,6 +443,17 @@ if(exists("data_retire_check_pre")){
 #如果count及count_pre有值且count = count_pre代表沒有新資料，如果count有值且count_pre為NA則有新資料
 
   #count_pre為NA的處理
+    #count_pre若不存在，建立0
+      if (!"count_pre" %in% colnames(data_teacher_check)) {
+        data_teacher_check$count_pre <- 0
+      }
+      if (!"count_pre" %in% colnames(data_staff_check)) {
+        data_staff_check$count_pre <- 0
+      }
+      if (!"count_pre" %in% colnames(data_retire_check)) {
+        data_retire_check$count_pre <- 0
+      }
+
   data_teacher_check$count_pre[is.na(data_teacher_check$count_pre)] <- 0
   data_staff_check$count_pre[is.na(data_staff_check$count_pre)] <- 0
   data_retire_check$count_pre[is.na(data_retire_check$count_pre)] <- 0
@@ -451,7 +462,7 @@ if(all(data_teacher_check$count == data_teacher_check$count_pre) &
    all(data_staff_check$count == data_staff_check$count_pre) & 
    all(data_retire_check$count == data_retire_check$count_pre) & 
    length(data_teacher_check$count_pre) > 0){
-  stop("本次無新資料，故不執行資料檢核")
+  stop("There is no new data for this time, so data validation will not be executed.")
 }else{
 # 合併人事資料表 ----------------------------------------------------------------
 data_teacher <- data_teacher %>%
@@ -1312,7 +1323,7 @@ flag_person_wide_flag8$flag8_r <- gsub(" NA", replacement="", flag_person_wide_f
 #產生檢誤報告文字
 flag8_temp <- flag_person_wide_flag8 %>%
   group_by(organization_id) %>%
-  mutate(flag8_txt = paste(source, "需修改國籍別處：", flag8_r, sep = ""), "") %>%
+  mutate(flag8_txt = paste(source, "需修改「國籍別」：", flag8_r, sep = ""), "") %>%
   subset(select = c(organization_id, flag8_txt)) %>%
   distinct(organization_id, flag8_txt)
 
@@ -1533,6 +1544,7 @@ flag_person$err_flag <- if_else(flag_person$leave == "延長病假(安胎)", 0, 
 flag_person$err_flag <- if_else(flag_person$leave == "公假(公傷假)", 0, flag_person$err_flag)
 flag_person$err_flag <- if_else(flag_person$leave == "公(傷)假", 0, flag_person$err_flag)
 flag_person$err_flag <- if_else(flag_person$leave == "安胎病假、產前假、娩假", 0, flag_person$err_flag)
+flag_person$err_flag <- if_else(flag_person$leave == "安胎病假及延長病假", 0, flag_person$err_flag)
 
 flag_person$err_flag <- if_else(grepl("留職停薪$", flag_person$leave) | grepl("留停$", flag_person$leave), 0, flag_person$err_flag)
 
@@ -1588,7 +1600,7 @@ flag16$flag16 <- gsub("； NA", replacement="", flag16$flag16)
 flag16 <- flag16 %>%
   subset(select = c(organization_id, flag16)) %>%
   distinct(organization_id, flag16) %>%
-  mutate(flag16 = paste(flag16, "（請確認請假類別，或是否屬於請假，若以上人員未有請假情事，請填寫半型大寫『N』）", sep = ""))
+  mutate(flag16 = paste(flag16, "（請確認或修正請假類別，或是否屬於請假，若以上人員未有請假情事，請填寫半型大寫『N』）", sep = ""))
 }else{
 #偵測flag16是否存在。若不存在，則產生NA行
 if('flag16' %in% ls()){
@@ -1685,7 +1697,7 @@ flag_person_wide_flag18$err_sertype <- if_else(flag_person_wide_flag18$count_ser
 flag_person_wide_flag18$err_sertype2 <- if_else(flag_person_wide_flag18$count_sertype2 > 1 & flag_person_wide_flag18$source == "教員資料表", "校長人數超過一位，請再協助確認實際聘任情況。", "")
 flag_person_wide_flag18$err_skillteacher <- if_else(flag_person_wide_flag18$count_skillteacher / flag_person_wide_flag18$jj < 0.5 & flag_person_wide_flag18$source == "教員資料表", "專業及技術教師人數偏多，請再協助確認實際聘任情況。", "")
 flag_person_wide_flag18$err_counselor <- if_else(flag_person_wide_flag18$count_counselor / flag_person_wide_flag18$jj < 0.5 & flag_person_wide_flag18$source == "教員資料表", "專任輔導教師人數偏多，請再協助確認實際聘任情況。", "")
-flag_person_wide_flag18$err_speteacher <- if_else(flag_person_wide_flag18$count_speteacher / flag_person_wide_flag18$jj < 0.5 & flag_person_wide_flag18$source == "教員資料表", "特教班專職教師人數偏多，請再協助確認實際聘任情況。", "")
+flag_person_wide_flag18$err_speteacher <- if_else(flag_person_wide_flag18$count_speteacher / flag_person_wide_flag18$jj < 0.5 & flag_person_wide_flag18$source == "教員資料表", "特教班專職教師人數偏多，請再協助確認實際聘任情況，並依欄位說明修正資料。", "")
 flag_person_wide_flag18$err_joiteacher <- if_else(flag_person_wide_flag18$count_joiteacher / flag_person_wide_flag18$jj > 0.1 & flag_person_wide_flag18$source == "教員資料表", "合聘教師人數偏多（請確認校內教師是否與他校合聘：如有與他校合聘者，本校又為『主聘學校』，再請於『是否為合聘教師』一欄填入『1』，若以本校為『從聘學校』請於『是否為合聘教師』一欄填入『2』；若沒有與他校合聘，則『是否為合聘教師』一欄請填『N』）", "")
 flag_person_wide_flag18$err_joiteacher2 <- if_else(flag_person_wide_flag18$count_joiteacher2 / flag_person_wide_flag18$jj > 0.2 & flag_person_wide_flag18$source == "教員資料表", "巡迴教師人數偏多（請確認校內巡迴教師人數：如有巡迴教師，以本校又為『中心學校』，再請於『是否為合聘教師』一欄填入『3』，若以本校為『從屬學校』請於『是否為合聘教師』一欄填入『4』；若沒有巡迴教師，則『是否為合聘教師』一欄請填『N』）", "")
 flag_person_wide_flag18$err_joiteacher3 <- if_else(flag_person_wide_flag18$count_joiteacher3 / flag_person_wide_flag18$jj < 0.5 & flag_person_wide_flag18$source == "教員資料表", "合聘教師與巡迴教師人數偏多（請確認校內合聘教師、巡迴教師情形）", "")
@@ -1870,6 +1882,7 @@ flag_person$err_flag_bdegreeu1 <- if_else(grepl("藥專", flag_person$bdegreeu1)
 flag_person$err_flag_bdegreeu1 <- if_else(grepl("^台南家專學校財團法人台南應用科技大學$", flag_person$bdegreeu1), 0, flag_person$err_flag_bdegreeu1)
 #陸軍官校專科班為學士學位
 flag_person$err_flag_bdegreeu1 <- if_else(grepl("^陸軍官校專科班$", flag_person$bdegreeu1), 0, flag_person$err_flag_bdegreeu1)
+flag_person$err_flag_bdegreeu1 <- if_else(grepl("^陸軍官校大學部$", flag_person$bdegreeu1), 0, flag_person$err_flag_bdegreeu1)
 
 flag_person$err_flag_bdegreeu2 <- 0
 flag_person$err_flag_bdegreeu2 <- if_else(grepl("專科", flag_person$bdegreeu2), 1, flag_person$err_flag_bdegreeu2)
@@ -1888,6 +1901,7 @@ flag_person$err_flag_bdegreeu2 <- if_else(grepl("藥專", flag_person$bdegreeu2)
 flag_person$err_flag_bdegreeu2 <- if_else(grepl("^台南家專學校財團法人台南應用科技大學$", flag_person$bdegreeu2), 0, flag_person$err_flag_bdegreeu2)
 #陸軍官校專科班為學士學位
 flag_person$err_flag_bdegreeu2 <- if_else(grepl("^陸軍官校專科班$", flag_person$bdegreeu2), 0, flag_person$err_flag_bdegreeu2)
+flag_person$err_flag_bdegreeu2 <- if_else(grepl("^陸軍官校大學部$", flag_person$bdegreeu2), 0, flag_person$err_flag_bdegreeu2)
 
 flag_person$err_flag <- flag_person$err_flag_bdegreeu1 + flag_person$err_flag_bdegreeu2
 
@@ -2322,7 +2336,7 @@ flag45$flag45 <- gsub("； NA", replacement="", flag45$flag45)
 flag45 <- flag45 %>%
   subset(select = c(organization_id, flag45)) %>%
   distinct(organization_id, flag45) %>%
-  mutate(flag45 = paste(flag45, "（請依欄位說明，修正「教師」、「主任教官」、「教官」之聘任科別中文名稱，「教師」、「主任教官」、「教官」以外其他服務身分別教員之聘任科別請修正為NA。）", sep = ""))
+  mutate(flag45 = paste(flag45, "（請依欄位說明，修正聘任科別中文名稱。）", sep = ""))
 }else{
 #偵測flag45是否存在。若不存在，則產生NA行
 if('flag45' %in% ls()){
@@ -3878,14 +3892,16 @@ flag_person$err_adminunit3 <- if_else(grepl("^教導處$", flag_person$adminunit
   #請確認*員之職稱或服務身分別，若確為教師，請將資料填至教員資料表。
   #（職員(工)資料表之服務單位資料不完整或不正確：請依欄位說明確認並正確填列行政單位名稱，如為二級單位，請敘明一級與二級單位名稱，如學務處體育組，總務處出納組。另請再確認資源班是否為行政單位名稱。）
   #（請確認並正確填列『兼任行政職服務單位』名稱，此欄位不需填入職務名稱。）
+  #（請確認並正確填列『兼任行政職服務單位』名稱，此欄位不需填入職務名稱(該欄請刪除『長』字)。）
   #（若確認*員因故代理校長，請於所代理之行政職職稱、行政職服務單位註記「1」，填報方式如下：
     #兼任行政職職稱(一)：校長1
     #兼任行政職服務單位(一)：校長室1）
   #（請再協助確認*員職務正確完整名稱，職稱與服務單位請依不同欄位分別填寫）  
-  #（請依欄位說明，填列蔡員於校內任職之正確職務名稱及服務單位名稱於『職務名稱』及『服務單位』欄位（如屬二級單位者，請敘明一與二級單位名稱）。
+  #（請再協助確認並修正*員兼任職務及其服務單位之正確完整名稱）
+  #（請依欄位說明，填列*員於校內任職之正確職務名稱及服務單位名稱於『職務名稱』及『服務單位』欄位（如屬二級單位者，請敘明一與二級單位名稱）。
     #若蔡員於校內兼任多項行政職務，請分別填列於『兼任行政職職稱』、『兼任行政職服務單位』（一）～（三）欄位。
     #蔡員於本學期若代理行政職務，所代理之行政職稱及其服務單位亦請填寫於 本 兼任行政職職稱及兼任行政職服務單位 欄，並於代理職稱與單位後加註「1」。）
-
+  #（請再協助確認上述人員服務單位正確完整名稱）
 
 
   #人事、會計僅設組長
@@ -4019,7 +4035,7 @@ for (i in temp){
 }
 flag_person_wide_flag62_2_1$flag62_2_1_r <- gsub("NA ", replacement="", flag_person_wide_flag62_2_1$flag62_2_1_r)
 flag_person_wide_flag62_2_1$flag62_2_1_r <- gsub(" NA", replacement="", flag_person_wide_flag62_2_1$flag62_2_1_r)
-flag_person_wide_flag62_2_1$flag62_2_1_r <- paste0(flag_person_wide_flag62_2_1$flag62_2_1_r, "\n（職員(工)資料表之各服務單位資料不完整或不正確：請依欄位說明確認並正確填列服務單位名稱，如為二級單位主管，請敘明一級與二級單位名稱。如總務處出納組，學生事務處生活輔導組。若編制並未設組，請來電告知。）") #若#err_flag_2_1: 職員工資料表出現err_flag_2，則加註
+flag_person_wide_flag62_2_1$flag62_2_1_r <- paste0(flag_person_wide_flag62_2_1$flag62_2_1_r, "\n（職員(工)資料表之各服務單位資料不完整或不正確：請依欄位說明確認並正確填列服務單位名稱，如為二級單位主管，請同時敘明一級與二級單位名稱。如總務處出納組，學生事務處生活輔導組。若編制並未設組，請來電告知。）") #若#err_flag_2_1: 職員工資料表出現err_flag_2，則加註
 }else{
   print("flag_person_wide_flag62_2_1 not exists.")
   rm(flag_person_wide_flag62_2_1)
@@ -4044,7 +4060,7 @@ for (i in temp){
 }
 flag_person_wide_flag62_2_2$flag62_2_2_r <- gsub("NA ", replacement="", flag_person_wide_flag62_2_2$flag62_2_2_r)
 flag_person_wide_flag62_2_2$flag62_2_2_r <- gsub(" NA", replacement="", flag_person_wide_flag62_2_2$flag62_2_2_r)
-flag_person_wide_flag62_2_2$flag62_2_2_r <- paste0(flag_person_wide_flag62_2_2$flag62_2_2_r, "\n（教員資料表之各兼任行政職資料不完整或不正確：請依欄位說明確認並正確填列行政單位名稱，如為二級單位主管，請敘明一級與二級單位名稱。如教務處教學組，學生事務處生活輔導組。若編制並未設組，請來電告知。）") #若err_flag_2_2: 教員資料表出現err_flag_2，則加註
+flag_person_wide_flag62_2_2$flag62_2_2_r <- paste0(flag_person_wide_flag62_2_2$flag62_2_2_r, "\n（教員資料表之各兼任行政職資料不完整或不正確：請依欄位說明確認並正確填列行政單位名稱，如為二級單位主管，請同時敘明一級與二級單位名稱。如教務處教學組，學生事務處生活輔導組。若編制並未設組，請來電告知。）") #若err_flag_2_2: 教員資料表出現err_flag_2，則加註
 }else{
   print("flag_person_wide_flag62_2_2 not exists.")
   rm(flag_person_wide_flag62_2_2)
@@ -4070,7 +4086,7 @@ for (i in temp){
 flag_person_wide_flag62_2_3$flag62_2_3_r <- gsub("NA ", replacement="", flag_person_wide_flag62_2_3$flag62_2_3_r)
 flag_person_wide_flag62_2_3$flag62_2_3_r <- gsub(" NA", replacement="", flag_person_wide_flag62_2_3$flag62_2_3_r)
 flag_person_wide_flag62_2_3$flag62_2_3_r <- if_else(flag_person_wide_flag62_2_3$source == "職員(工)資料表", 
-  paste0(flag_person_wide_flag62_2_3$flag62_2_3_r, "\n（教員資料表及職員(工)資料表之(兼任)職稱或服務單位資料不完整或不正確：請依欄位說明確認並正確填列行政單位名稱，如為二級單位主管，請敘明一級與二級單位名稱。如教務處教學組，總務處出納組。若編制並未設組，請來電告知。）"),  #若err_flag_2_3: 教員及職員工資料表同時出現err_flag_2，則加註
+  paste0(flag_person_wide_flag62_2_3$flag62_2_3_r, "\n（教員資料表及職員(工)資料表之(兼任)職稱或服務單位資料不完整或不正確：請依欄位說明確認並正確填列行政單位名稱，如為二級單位主管，請同時敘明一級與二級單位名稱。如教務處教學組，總務處出納組。若編制並未設組，請來電告知。）"),  #若err_flag_2_3: 教員及職員工資料表同時出現err_flag_2，則加註
   flag_person_wide_flag62_2_3$flag62_2_3_r)
 }else{
   print("flag_person_wide_flag62_2_3 not exists.")
@@ -4190,7 +4206,7 @@ flag_person$jj <- 1
 flag_person_wide_flag64 <- aggregate(cbind(dese, jj) ~ organization_id, flag_person, sum)
 
 flag_person_wide_flag64$flag_err <- 0
-flag_person_wide_flag64$err_flag_txt <- if_else(flag_person_wide_flag64$dese / flag_person_wide_flag64$jj > 0.25, "扣除年資不為零的人數偏高，請再依欄位說明確認。", "")
+flag_person_wide_flag64$err_flag_txt <- if_else(flag_person_wide_flag64$dese / flag_person_wide_flag64$jj > 0.25, "扣除年資不為零的人數似偏高，請再依欄位說明確認。", "")
 
 if (dim(flag_person_wide_flag64 %>% subset(err_flag_txt != ""))[1] != 0){
 #根據organization_id，展開成寬資料(wide)
@@ -4642,7 +4658,7 @@ flag_person_wide_flag94$flag94_r <- gsub(" NA", replacement="", flag_person_wide
 #產生檢誤報告文字
 flag94_temp <- flag_person_wide_flag94 %>%
   group_by(organization_id) %>%
-  mutate(flag94_txt = paste(source, "姓名：", flag94_r, sep = ""), "") %>%
+  mutate(flag94_txt = paste(source, "：", flag94_r, sep = ""), "") %>%
   subset(select = c(organization_id, flag94_txt)) %>%
   distinct(organization_id, flag94_txt)
 
@@ -4663,7 +4679,7 @@ flag94$flag94 <- gsub("； NA", replacement="", flag94$flag94)
 flag94 <- flag94 %>%
   subset(select = c(organization_id, flag94)) %>%
   distinct(organization_id, flag94) %>%
-  mutate(flag94 = paste(flag94, "（請確認上開職員(工)之『聘任類別』及『職務名稱』。凡以簽訂契約方式任用之人員，無論是否為編制內員額，其『聘任類別』皆請修正為『約聘僱』。並請再協助確認上開職員(工)『職務名稱』是否正確。惟貴校職員(工)如具正式公務人員身分者，則其『聘任類別』原則應是『專任』。）（貴校如僅有本項檢查須再確認修正資料，則不列入國教署催辦範圍，惟請儘速確認修正送出資料。）", sep = ""))
+  mutate(flag94 = paste(flag94, "（請確認上開職員(工)之『聘任類別』及『職務名稱』。凡以簽訂契約方式任用之人員，無論是否為編制內員額，其『聘任類別』皆請修正為『約聘僱』。並請再協助確認上開職員(工)『職務名稱』是否正確。惟貴校職員(工)如具正式公務人員身分者，則其『聘任類別』原則應是『專任』。）", sep = ""))
 }else{
 #偵測flag94是否存在。若不存在，則產生NA行
 if('flag94' %in% ls()){
@@ -4837,7 +4853,7 @@ spe5$spe5 <- gsub("； NA", replacement="", spe5$spe5)
 spe5 <- spe5 %>%
   subset(select = c(organization_id, spe5)) %>%
   distinct(organization_id, spe5) %>%
-  mutate(spe5 = paste(spe5, "（請確認以上人員畢業證書所載學位別。若最高學歷畢業學校為(科技/空中)大學、(技術)學院或其他技職校院，且為專科學制，請於「副學士或專科畢業學校」欄位中在校名後註記專科學制或專科部）", sep = ""))
+  mutate(spe5 = paste(spe5, "（請確認以上人員畢業證書所載學位別。若副學士或專科畢業學校為(科技/空中)大學、(技術)學院或其他技職校院，且確認為專科學制，請於「副學士或專科畢業學校」欄位中在校名後註記專科學制或專科部）", sep = ""))
 }else{
 #偵測spe5是否存在。若不存在，則產生NA行
 if('spe5' %in% ls()){
@@ -5399,6 +5415,8 @@ flag_person$err_mdegreeg1 <- if_else(grepl("行政$", flag_person$mdegreeg1), 1,
 flag_person$err_mdegreeg1 <- if_else(grepl("^教育政策與行政$", flag_person$mdegreeg1) & (grepl("國立臺灣師範大學", flag_person$mdegreeu1) | grepl("國立台灣師範大學", flag_person$mdegreeu1)), 0, flag_person$err_mdegreeg1)
 flag_person$err_mdegreeg1 <- if_else(grepl("^社會教育學系學校圖書行政$", flag_person$mdegreeg1) & (grepl("國立臺灣師範大學", flag_person$mdegreeu1) | grepl("國立台灣師範大學", flag_person$mdegreeu1)), 0, flag_person$err_mdegreeg1)
 flag_person$err_mdegreeg1 <- if_else(grepl("^工業教育學系技職教育行政$", flag_person$mdegreeg1) & (grepl("國立臺灣師範大學", flag_person$mdegreeu1) | grepl("國立台灣師範大學", flag_person$mdegreeu1)), 0, flag_person$err_mdegreeg1)
+flag_person$err_mdegreeg1 <- if_else(grepl("^教師在職進修教學及學校行政碩士學位班$", flag_person$mdegreeg1) & grepl("中山大學", flag_person$mdegreeu1), 0, flag_person$err_mdegreeg1)
+
 
 #碩士學位畢業學校國別（二）
 flag_person$err_mdegreen2 <- 0
@@ -5594,6 +5612,7 @@ flag_person$err_mdegreeg2 <- if_else(grepl("行政$", flag_person$mdegreeg2), 1,
 flag_person$err_mdegreeg2 <- if_else(grepl("^教育政策與行政$", flag_person$mdegreeg2) & (grepl("國立臺灣師範大學", flag_person$mdegreeu1) | grepl("國立台灣師範大學", flag_person$mdegreeu1)), 0, flag_person$err_mdegreeg2)
 flag_person$err_mdegreeg2 <- if_else(grepl("^社會教育學系學校圖書行政$", flag_person$mdegreeg2) & (grepl("國立臺灣師範大學", flag_person$mdegreeu1) | grepl("國立台灣師範大學", flag_person$mdegreeu1)), 0, flag_person$err_mdegreeg2)
 flag_person$err_mdegreeg2 <- if_else(grepl("^工業教育學系技職教育行政$", flag_person$mdegreeg2) & (grepl("國立臺灣師範大學", flag_person$mdegreeu1) | grepl("國立台灣師範大學", flag_person$mdegreeu1)), 0, flag_person$err_mdegreeg2)
+flag_person$err_mdegreeg2 <- if_else(grepl("^教師在職進修教學及學校行政碩士學位班$", flag_person$mdegreeg2) & grepl("中山大學", flag_person$mdegreeu2), 0, flag_person$err_mdegreeg2)
 
 #學士學位畢業學校國別（一）
 flag_person$err_bdegreen1 <- 0
@@ -6092,7 +6111,10 @@ flag_person$err_adegreeu1 <- if_else(grepl("體院", flag_person$adegreeu1), 0, 
 flag_person$err_adegreeu1 <- if_else(grepl("專科", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
 flag_person$err_adegreeu1 <- if_else(grepl("藝專", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
 flag_person$err_adegreeu1 <- if_else(grepl("海專", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
+flag_person$err_adegreeu1 <- if_else(grepl("海事專科", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
+flag_person$err_adegreeu1 <- if_else(grepl("海事商業專科", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
 flag_person$err_adegreeu1 <- if_else(grepl("工專", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
+flag_person$err_adegreeu1 <- if_else(grepl("工商管理專科", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
 flag_person$err_adegreeu1 <- if_else(grepl("護專", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
 flag_person$err_adegreeu1 <- if_else(grepl("家專", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
 flag_person$err_adegreeu1 <- if_else(grepl("商專", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
@@ -6106,6 +6128,7 @@ flag_person$err_adegreeu1 <- if_else(grepl("語專", flag_person$adegreeu1), 0, 
 flag_person$err_adegreeu1 <- if_else(grepl("企專", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
 flag_person$err_adegreeu1 <- if_else(grepl("士校", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
 flag_person$err_adegreeu1 <- if_else(grepl("專校$", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
+flag_person$err_adegreeu1 <- if_else(grepl("專校(二專)$", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
 flag_person$err_adegreeu1 <- if_else(grepl("逕讀", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
 flag_person$err_adegreeu1 <- if_else(grepl("音樂院$", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
 #flag_person$err_adegreeu1 <- if_else(grepl("音樂研究所$", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
@@ -6172,6 +6195,9 @@ flag_person$err_adegreeu1 <- if_else(grepl("^仁德高級醫事職業學校$", f
 flag_person$err_adegreeu1 <- if_else(grepl("^私立慈惠謢理助產學校$", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
 flag_person$err_adegreeu1 <- if_else(grepl("籌備處$", flag_person$adegreeu1), 1, flag_person$err_adegreeu1)
 flag_person$err_adegreeu1 <- if_else(grepl("所", flag_person$adegreeu1), 1, flag_person$err_adegreeu1)
+#"工商專校"、"工商專科學校"正確
+flag_person$err_adegreeu1 <- if_else(grepl("工商專校", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
+flag_person$err_adegreeu1 <- if_else(grepl("工商專科學校", flag_person$adegreeu1), 0, flag_person$err_adegreeu1)
 
 #副學士學位畢業系所（一）
 flag_person$err_adegreeg1 <- 0
@@ -6310,6 +6336,7 @@ flag_person$err_adegreeu2 <- if_else(grepl("語專", flag_person$adegreeu2), 0, 
 flag_person$err_adegreeu2 <- if_else(grepl("企專", flag_person$adegreeu2), 0, flag_person$err_adegreeu2)
 flag_person$err_adegreeu2 <- if_else(grepl("士校", flag_person$adegreeu2), 0, flag_person$err_adegreeu2)
 flag_person$err_adegreeu2 <- if_else(grepl("專校$", flag_person$adegreeu2), 0, flag_person$err_adegreeu2)
+flag_person$err_adegreeu2 <- if_else(grepl("專校(二專)$", flag_person$adegreeu2), 0, flag_person$err_adegreeu2)
 flag_person$err_adegreeu2 <- if_else(grepl("逕讀", flag_person$adegreeu2), 0, flag_person$err_adegreeu2)
 flag_person$err_adegreeu2 <- if_else(grepl("音樂院$", flag_person$adegreeu2), 0, flag_person$err_adegreeu2)
 #flag_person$err_adegreeu2 <- if_else(grepl("音樂研究所$", flag_person$adegreeu2), 0, flag_person$err_adegreeu2)
@@ -6376,6 +6403,9 @@ flag_person$err_adegreeu2 <- if_else(grepl("^仁德高級醫事職業學校$", f
 flag_person$err_adegreeu2 <- if_else(grepl("^私立慈惠謢理助產學校$", flag_person$adegreeu2), 0, flag_person$err_adegreeu2)
 flag_person$err_adegreeu2 <- if_else(grepl("籌備處$", flag_person$adegreeu2), 1, flag_person$err_adegreeu2)
 flag_person$err_adegreeu2 <- if_else(grepl("所", flag_person$adegreeu2), 1, flag_person$err_adegreeu2)
+#"工商專校"、"工商專科學校"正確
+flag_person$err_adegreeu2 <- if_else(grepl("工商專校", flag_person$adegreeu2), 0, flag_person$err_adegreeu2)
+flag_person$err_adegreeu2 <- if_else(grepl("工商專科學校", flag_person$adegreeu2), 0, flag_person$err_adegreeu2)
 
 #副學士學位畢業系所（二）
 flag_person$err_adegreeg2 <- 0
@@ -6840,8 +6870,8 @@ flag_person$name <- if_else(flag_person$err_adegreen2 != 0, paste(flag_person$na
 flag_person$name <- if_else(flag_person$err_adegreeu2 != 0, paste(flag_person$name, "副學士或專科畢業學校（二）：", flag_person$adegreeu2, "；", sep = ""), flag_person$name)
 flag_person$name <- if_else(flag_person$err_adegreeg2 != 0, paste(flag_person$name, "副學士或專科畢業科系（二）：", flag_person$adegreeg2, "；", sep = ""), flag_person$name)
 flag_person$name <- if_else(flag_person$err_bdeade != 0, paste(flag_person$name, "副學士或專科畢業學校國別（一）：", flag_person$adegreen1, "、副學士或專科畢業學校（一）：", flag_person$adegreeu1, "、副學士或專科畢業科系（一）：",  flag_person$adegreeg1, " (若逕讀碩士，副學士或專科畢業資訊應不為N)", sep = ""), flag_person$name)
-flag_person$name <- if_else(flag_person$err_bdeade2 != 0, paste(flag_person$name, "(若逕讀博士，學士畢業資訊應不為N)", sep = ""), flag_person$name)
-flag_person$name <- if_else(flag_person$err_bdeade3 != 0, paste(flag_person$name, "(若逕讀博士，學士或專科畢業資訊應不為逕讀博士)", sep = ""), flag_person$name)
+flag_person$name <- if_else(flag_person$err_bdeade2 != 0, paste(flag_person$name, "（若逕讀博士，學士畢業資訊應不為N）", sep = ""), flag_person$name)
+flag_person$name <- if_else(flag_person$err_bdeade3 != 0, paste(flag_person$name, "（若逕讀博士，學士或專科畢業資訊應不為逕讀博士）", sep = ""), flag_person$name)
 flag_person$name <- if_else(flag_person$err_bdeade4 != 0, paste(flag_person$name, "若於外國學校取得學位，其學位畢業學校國別不應為本國", sep = ""), flag_person$name)
 flag_person$name <- if_else(flag_person$err_bdeade5 != 0, paste(flag_person$name, "若為逕讀碩士，相關欄位請依欄位說明填寫", sep = ""), flag_person$name)
 flag_person$name <- if_else(flag_person$err_bdeade6 != 0, paste(flag_person$name, "若為逕讀碩士，應填列碩士學歷相關資訊", sep = ""), flag_person$name)
@@ -6851,13 +6881,21 @@ flag_person$name <- gsub("；）", replacement = "）", flag_person$name)
 flag_person$name <- gsub("（）", replacement = "", flag_person$name)
 
 # （請確認畢業科系正確名稱）
+# （請確認並修正填寫畢業科系正確全稱）
 # （請確認畢業系所正確名稱）
+# （請確認並修正填寫畢業系所與班別正確全稱）
+# （請確認畢業系所正確全稱，且學分班結業非取得學位）
+# （請確認畢業科系所正確全稱，若未取得畢業/學位證書，則不認定取得該學位。另，各學位別學歷資訊請依欄位說明，按各學位別欄位分別填寫）
 # （請確認畢業學校正確名稱）
+# （請確認畢業學校所在國家正確名稱）
+# （請確認並修正填寫畢業學校正確名稱。且若副學士或專科畢業學校為(科技/空中)大學、(技術)學院或其他技職校院，且確認為專科學制，請於「副學士或專科畢業學校」欄位中在校名後註記專科學制或專科部）
 # （請依照*員『*士』學位畢業證書，填寫正確之學校名稱。）
 # （請依照*員『*士』學位畢業證書，填寫正確之系所名稱。）
 # （請依照*員『*士』學位畢業證書，填寫正確之科系名稱。）
+# （請依照*員『*士』學位畢業證書，填寫正確之科系名稱，或刪除贅字。）
 # （請確認*員畢業學校正確名稱及拼字是否正確）
 # （請依照上開人員碩士學位畢業證書，填寫正確之系所名稱全稱。）
+# （若該名教員似具二個以上學士學位，如確取得二個學士學位，則請按取得學位年月日，由近而遠(由最近取得至次近取得)依序分別填寫『學士學位畢業科系(一) 』(最近)、『學士學位畢業科系(二) 』(次近)，倘無法區分時間先後順序，如雙主修，亦請皆填列。）
 # 
 # 40學分班之文字
 # （學分班非屬『學位授予法』規定之學位別，且依該法規定，須修業期滿、修滿應修學分並符畢業條件，始能獲頒學位。若*員經確認未獲碩士學位，請於碩士學位畢業學校國別、畢業學校、畢業系所三欄填『N』）
@@ -7128,6 +7166,8 @@ for (i in temp){
 flag_person_wide_flag84$flag84_r <- gsub("NA ", replacement="", flag_person_wide_flag84$flag84_r)
 flag_person_wide_flag84$flag84_r <- gsub(" NA", replacement="", flag_person_wide_flag84$flag84_r)
 
+flag_person_wide_flag84$source <- gsub("資料表", replacement = "", flag_person_wide_flag84$source)
+
 #產生檢誤報告文字
 flag84_temp <- flag_person_wide_flag84 %>%
   group_by(organization_id) %>%
@@ -7376,7 +7416,7 @@ if (dim(flag_person %>% subset(err_flag == 1))[1] != 0){
 flag_person_wide_flag86 <- flag_person %>%
   subset(select = c(organization_id, idnumber, err_flag_txt, edu_name2, err_flag)) %>%
   subset(err_flag == 1) %>%
-  dcast(organization_id ~ err_flag_txt, value.var = "err_flag_txt")
+  dcast(organization_id ~ err_flag_txt, value.var = "err_flag_txt", fun.aggregate = first)
 
 #合併所有name
 temp <- colnames(flag_person_wide_flag86)[2 : length(colnames(flag_person_wide_flag86))]
@@ -7411,8 +7451,8 @@ flag86$flag86 <- gsub("； NA", replacement="", flag86$flag86)
 flag86 <- flag86 %>%
   subset(select = c(organization_id, flag86)) %>%
   distinct(organization_id, flag86) %>%
-  mutate(flag86 = if_else(substr(organization_id, 3, 3) == "1", paste0(flag86, "（經比對貴校上一學年所填資料，上述人員並未出現於本學期的教員資料表或職員(工)資料表，請確認渠等是否於111學年度第二學期（112年2月1日-112年7月31日）退休或因故離職等，若於該學期退休或因故離職等，應於離退教職員(工)資料表填寫資料。如非於該學期退休或因故離職，或已介聘、調至他校，請來電告知。）"), #私立
-                                                                paste0(flag86, "（經比對貴校上一學年所填資料，上述人員並未出現於本學期的教員資料表或職員(工)資料表，請確認渠等是否於111年10月1日-112年7月31日退休或因故離職等，若於該學期退休或因故離職等，應於離退教職員(工)資料表填寫資料。如非於該學期退休或因故離職，或已介聘、調至他校，請來電告知。）"))) #公立
+  mutate(flag86 = if_else(substr(organization_id, 3, 3) == "1", paste0(flag86, "（經比對貴校上一學年所填資料，上述人員並未出現於本學期的教員資料表或職員(工)資料表，請確認渠等是否於111學年度第二學期（112年2月1日-112年7月31日）退休或因故離職等，若於該期間退休或因故離職等，應於離退教職員(工)資料表填寫資料。如非於該期間退休或因故離職，或已介聘、調至他校，請來電告知。）"), #私立
+                                                                paste0(flag86, "（經比對貴校上一學年所填資料，上述人員並未出現於本學期的教員資料表或職員(工)資料表，請確認渠等是否於111年10月1日-112年7月31日退休或因故離職等，若於該期間退休或因故離職等，應於離退教職員(工)資料表填寫資料。如非於該期間退休或因故離職，或已介聘、調至他校，請來電告知。）"))) #公立
 
 
 }else{
@@ -7486,7 +7526,7 @@ flag91$flag91 <- gsub("； NA", replacement="", flag91$flag91)
 flag91 <- flag91 %>%
   subset(select = c(organization_id, flag91)) %>%
   distinct(organization_id, flag91) %>%
-  mutate(flag91 = paste(flag91, "（離退人員於上一期資料填報姓名不相同。如已更名，請來電告知）", sep = ""))
+  mutate(flag91 = paste(flag91, "（離退人員於上一期資料填報姓名與本次資料不相同。請務必確認修正，如已更名，請來電告知。）", sep = ""))
 }else{
 #偵測flag91是否存在。若不存在，則產生NA行
 if('flag91' %in% ls()){
@@ -7544,6 +7584,7 @@ flag_person_wide_flag95$err_emptype1 <- scales::percent(flag_person_wide_flag95$
 flag_person_wide_flag95$err_emptype2 <- scales::percent(flag_person_wide_flag95$err_emptype2, accuracy = 0.1)
 flag_person_wide_flag95$err_staff <- scales::percent(flag_person_wide_flag95$err_staff, accuracy = 0.1)
 
+#請確認貴校所填專任教師、代理教師、校長、教官、主任教官名單資料是否完整。
 
 flag_person_wide_flag95$err_flag_txt <- paste0("統計處專任教師人數：", 
                                                flag_person_wide_flag95$count_emptype1_1, 
@@ -7569,7 +7610,12 @@ flag_person$err_flag <- if_else((grepl("主任$", flag_person$admintitle0) |
                                  grepl("主任$", flag_person$admintitle2) | 
                                  grepl("主任$", flag_person$admintitle3)) 
                                 & (flag_person$emptype != "專任") , 1, flag_person$err_flag)
-
+#科主任非一級主管
+flag_person$err_flag <- if_else((grepl("科主任$", flag_person$admintitle0) | 
+                                 grepl("科主任$", flag_person$admintitle1) | 
+                                 grepl("科主任$", flag_person$admintitle2) | 
+                                 grepl("科主任$", flag_person$admintitle3)), 0, flag_person$err_flag)
+  
 #加註
 flag_person$name <- if_else(grepl("主任$", flag_person$admintitle0) & flag_person$emptype != "專任", paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit0, flag_person$admintitle0, "）", sep = ""), flag_person$name)
 flag_person$name <- if_else(grepl("主任$", flag_person$admintitle1) & flag_person$emptype != "專任", paste(flag_person$name, "（", flag_person$emptype, " ", flag_person$adminunit1, flag_person$admintitle1, "）", sep = ""), flag_person$name)
@@ -7852,6 +7898,9 @@ if (dim(flag_person %>% subset(err_flag == 1))[1] != 0){
   flag_person_wide_flag98$flag98_r <- gsub("NA ", replacement="", flag_person_wide_flag98$flag98_r)
   flag_person_wide_flag98$flag98_r <- gsub(" NA", replacement="", flag_person_wide_flag98$flag98_r)
   
+  #（請確認並修正該員學歷資料）
+  #（請確認*員最高學歷資訊）
+  
   #產生檢誤報告文字
   flag98_temp <- flag_person_wide_flag98 %>%
     group_by(organization_id) %>%
@@ -7968,11 +8017,13 @@ if (dim(flag_person %>% subset(err_flag == 1))[1] != 0){
   flag99$flag99 <- gsub("NA； ", replacement="", flag99$flag99)
   flag99$flag99 <- gsub("； NA", replacement="", flag99$flag99)
   
+  #（請確認上開人員之『聘任類別』，或是否確為業師或技術教師。）
+
   #產生檢誤報告文字
   flag99 <- flag99 %>%
     subset(select = c(organization_id, flag99)) %>%
     distinct(organization_id, flag99) %>%
-    mutate(flag99 = paste(flag99, "（請確認上開人員之『聘任類別』，或是否具備相關身分資格。）", sep = ""))
+    mutate(flag99 = paste(flag99, "（請協助確認上開人員之『聘任類別』，或是否具備相關身分資格。）", sep = ""))
 }else{
   #偵測flag99是否存在。若不存在，則產生NA行
   if('flag99' %in% ls()){
@@ -8045,7 +8096,7 @@ if (dim(flag_person %>% subset(err_flag == 1))[1] != 0){
   flag100 <- flag100 %>%
     subset(select = c(organization_id, flag100)) %>%
     distinct(organization_id, flag100) %>%
-    mutate(flag100 = paste(flag100, "（校長「本校到職前學校服務總年資」偏小，請確認校長之「本校到職日期」、「本校到職前學校服務總年資」。）", sep = ""))
+    mutate(flag100 = paste(flag100, "（校長『本校到職前學校服務總年資』似偏少，請確認校長就任之『本校到職日期』，以及過去在本校及他校擔任教師與主任等全職工作之『本校到職前學校服務總年資』。）", sep = ""))
 }else{
   #偵測flag100是否存在。若不存在，則產生NA行
   if('flag100' %in% ls()){
@@ -8059,7 +8110,6 @@ if (dim(flag_person %>% subset(err_flag == 1))[1] != 0){
 }
 
 # 建立合併列印檔 -------------------------------------------------------------------
-temp <- c("flag2", "flag3", "flag6", "flag7", "flag8", "flag9", "flag15", "flag16", "flag18", "flag19", "flag20", "flag24", "flag39", "flag45", "flag47", "flag48", "flag49", "flag50", "flag51", "flag52", "flag57", "flag59", "flag62", "flag64", "flag80", "flag82", "flag83", "flag84", "flag85", "flag86", "flag89", "flag90", "flag91", "flag92", "flag93", "flag94", "flag95", "flag96", "flag97", "flag98", "flag99", "flag100", "sp3", "sp5", "sp6")
 check02 <- merge(x = edu_name2, y = flag1, by = c("organization_id"), all.x = TRUE, all.y = TRUE)
 check02 <- merge(x = check02, y = flag2, by = c("organization_id"), all.x = TRUE, all.y = TRUE)
 check02 <- merge(x = check02, y = flag3, by = c("organization_id"), all.x = TRUE, all.y = TRUE)
