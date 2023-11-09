@@ -5696,6 +5696,44 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
         #職員工的「職務名稱」不應有教師、老師等非行政工作之名稱。
         flag_person <- drev_person_1
         
+        # 檢查admintitle adminunit admintitle1 adminunit1 admintitle2 adminunit2 admintitle3 adminunit3是否有任一個值包含全形"Ｎ"
+        if ("Ｎ" %in% flag_person$admintitle0  ||
+            "Ｎ" %in% flag_person$adminunit0   ||
+            "Ｎ" %in% flag_person$admintitle1 ||
+            "Ｎ" %in% flag_person$adminunit1  ||
+            "Ｎ" %in% flag_person$admintitle2 ||
+            "Ｎ" %in% flag_person$adminunit2  ||
+            "Ｎ" %in% flag_person$admintitle3 ||
+            "Ｎ" %in% flag_person$adminunit3) {
+          # 如果包含"Ｎ"，則篩選organization_id對應的值
+          flag62_detectN <- flag_person %>% filter(
+            admintitle0 == "Ｎ" |
+              adminunit0 == "Ｎ" |
+              admintitle1 == "Ｎ" |
+              adminunit1 == "Ｎ" |
+              admintitle2 == "Ｎ" |
+              adminunit2 == "Ｎ" |
+              admintitle3 == "Ｎ" |
+              adminunit3 == "Ｎ"
+          ) %>% distinct(organization_id)
+          cat("Ｎ exists.\n")
+          flag_person$admintitle0[flag_person$admintitle0 == "Ｎ"] <- "N"
+          flag_person$adminunit0[flag_person$adminunit0 == "Ｎ"] <- "N"
+          flag_person$admintitle1[flag_person$admintitle1 == "Ｎ"] <- "N"
+          flag_person$adminunit1[flag_person$adminunit1 == "Ｎ"] <- "N"
+          flag_person$admintitle2[flag_person$admintitle2 == "Ｎ"] <- "N"
+          flag_person$adminunit2[flag_person$adminunit2 == "Ｎ"] <- "N"
+          flag_person$admintitle3[flag_person$admintitle3 == "Ｎ"] <- "N"
+          flag_person$adminunit3[flag_person$adminunit3 == "Ｎ"] <- "N"
+          
+          flag62_detectN$detectN <- "1"
+        } else {
+          flag62_detectN <-
+            data.frame(organization_id = "", detectN = "")  # 創建一個空的DataFrame
+          cat("Ｎ does not exist.\n")
+        }
+        
+        
         #職務名稱
         flag_person$err_admintitle0 <- 1
         flag_person$err_admintitle0 <-
@@ -9446,6 +9484,7 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
         #若蔡員於校內兼任多項行政職務，請分別填列於『兼任行政職職稱』、『兼任行政職服務單位』（一）～（三）欄位。
         #蔡員於本學期若代理行政職務，所代理之行政職稱及其服務單位亦請填寫於 本 兼任行政職職稱及兼任行政職服務單位 欄，並於代理職稱與單位後加註「1」。）
         #（請再協助確認上述人員服務單位正確完整名稱）
+        #（請再協助確認上述人員職務正確完整名稱，或修正錯字）
         
         
         #人事、會計僅設組長
@@ -9868,7 +9907,7 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
             flag_person_wide_flag62_2_1$flag62_2_1_r <-
               paste0(
                 flag_person_wide_flag62_2_1$flag62_2_1_r,
-                "\n（職員(工)資料表之各服務單位資料不完整或不正確：請依欄位說明確認並正確填列服務單位名稱，如為二級單位主管，請同時敘明一級與二級單位名稱。如總務處出納組，學生事務處生活輔導組。若編制並未設組，請來電告知。）"
+                "\n（職員(工)資料表之各服務單位資料不完整或不正確：請依欄位說明確認並正確填列各級服務單位名稱；如為二級單位主管，請同時敘明一級與二級單位名稱，如總務處出納組，學生事務處生活輔導組。若編制並未設組，請來電告知。）"
               ) #若#err_flag_2_1: 職員工資料表出現err_flag_2，則加註
           } else{
             print("flag_person_wide_flag62_2_1 not exists.")
@@ -9923,7 +9962,7 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
             flag_person_wide_flag62_2_2$flag62_2_2_r <-
               paste0(
                 flag_person_wide_flag62_2_2$flag62_2_2_r,
-                "\n（教員資料表之各兼任行政職資料不完整或不正確：請依欄位說明確認並正確填列行政單位名稱，如為二級單位主管，請同時敘明一級與二級單位名稱。如教務處教學組，學生事務處生活輔導組。若編制並未設組，請來電告知。）"
+                "\n（教員資料表之各兼任行政職資料不完整或不正確：請依欄位說明確認並正確填列各級行政單位名稱；如為二級單位主管，請同時敘明一級與二級單位名稱，如教務處教學組，學生事務處生活輔導組。若編制並未設組，請來電告知。）"
               ) #若err_flag_2_2: 教員資料表出現err_flag_2，則加註
           } else{
             print("flag_person_wide_flag62_2_2 not exists.")
@@ -9983,7 +10022,7 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
                 flag_person_wide_flag62_2_3$source == "職員(工)資料表",
                 paste0(
                   flag_person_wide_flag62_2_3$flag62_2_3_r,
-                  "\n（教員資料表及職員(工)資料表之(兼任)職稱或服務單位資料不完整或不正確：請依欄位說明確認並正確填列行政單位名稱，如為二級單位主管，請同時敘明一級與二級單位名稱。如教務處教學組，總務處出納組。若編制並未設組，請來電告知。）"
+                  "\n（教員資料表及職員(工)資料表之(兼任)職稱或服務單位資料不完整或不正確：請依欄位說明確認並正確填列各級行政單位名稱；如為二級單位主管，請同時敘明一級與二級單位名稱，如教務處教學組，總務處出納組。若編制並未設組，請來電告知。）"
                 ),
                 #若err_flag_2_3: 教員及職員工資料表同時出現err_flag_2，則加註
                 flag_person_wide_flag62_2_3$flag62_2_3_r
@@ -10133,6 +10172,24 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
             subset(select = c(organization_id, flag62)) %>%
             distinct(organization_id, flag62) %>%
             mutate(flag62 = paste(flag62, "", sep = ""))
+          
+          #全形"Ｎ"的提示
+          flag62 <- flag62 %>%
+            full_join(flag62_detectN, by = "organization_id") %>%
+            subset(!is.na(flag62))
+          flag62$detectN <- if_else(is.na(flag62$detectN), "", flag62$detectN)
+          flag62$flag62 <-
+            if_else(
+              flag62$detectN == "1",
+              paste0(
+                "請將教員資料表及職員(工)資料表之「兼任行政職職稱（一）～（三）」、「兼任行政職服務單位（一）～（三）」、「職務名稱」或「服務單位」之「全形Ｎ」修正為「半形N」。",
+                flag62$flag62
+              ),
+              flag62$flag62
+            )
+          flag62 <- flag62 %>%
+            select(-c("detectN"))
+          
         } else{
           #偵測flag62是否存在。若不存在，則產生NA行
           if ('flag62' %in% ls()) {
@@ -10142,6 +10199,21 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
               distinct(organization_id, .keep_all = TRUE) %>%
               subset(select = c(organization_id))
             flag62$flag62 <- ""
+            
+            #全形"Ｎ"的提示
+            flag62 <- flag62 %>%
+              full_join(flag62_detectN, by = "organization_id")
+            flag62$detectN <-
+              if_else(is.na(flag62$detectN), "", flag62$detectN)
+            flag62$flag62 <-
+              if_else(
+                flag62$detectN == "1",
+                "請將教員資料表及職員(工)資料表之「兼任行政職職稱（一）～（三）」、「兼任行政職服務單位（一）～（三）」、「職務名稱」或「服務單位」之「全形Ｎ」修正為「半形N」。",
+                flag62$flag62
+              )
+            flag62 <- flag62 %>%
+              select(-c("detectN"))
+            
           }
         }
         # flag64: 本校任職需扣除年資非0000者分布偏高。 -------------------------------------------------------------------
@@ -10908,7 +10980,7 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
             mutate(
               flag94 = paste(
                 flag94,
-                "（請確認上開職員(工)之『聘任類別』及『職務名稱』。凡以簽訂契約方式任用之人員，無論是否為編制內員額，其『聘任類別』皆請修正為『約聘僱』。並請再協助確認上開職員(工)『職務名稱』是否正確。惟貴校職員(工)如具正式公務人員身分者，則其『聘任類別』原則應是『專任』。）",
+                "（請確認上開職員(工)之『聘任類別』及『職務名稱』。凡以簽訂契約方式任用之人員，無論是否為編制內員額，其『聘任類別』原則請修正為『約聘僱』或『約用』。並請再協助確認上開職員(工)『職務名稱』是否正確。惟貴校職員(工)如具正式公務人員身分者，則其『聘任類別』原則應是『專任』。）",
                 sep = ""
               )
             )
@@ -16340,6 +16412,11 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
           if_else(grepl("藝專", flag_person$adegreeu1),
                   0,
                   flag_person$err_adegreeu1)
+        
+        flag_person$err_adegreeu1 <-
+          if_else(grepl("海事", flag_person$adegreeu1),
+                  1,
+                  flag_person$err_adegreeu1)
         flag_person$err_adegreeu1 <-
           if_else(grepl("海專", flag_person$adegreeu1),
                   0,
@@ -16352,6 +16429,11 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
           if_else(grepl("海事商業專科", flag_person$adegreeu1),
                   0,
                   flag_person$err_adegreeu1)
+        
+        flag_person$err_adegreeu1 <-
+          if_else(grepl("工商", flag_person$adegreeu1),
+                  1,
+                  flag_person$err_adegreeu1)
         flag_person$err_adegreeu1 <-
           if_else(grepl("工專", flag_person$adegreeu1),
                   0,
@@ -16360,6 +16442,15 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
           if_else(grepl("工商管理專科", flag_person$adegreeu1),
                   0,
                   flag_person$err_adegreeu1)
+        flag_person$err_adegreeu1 <-
+          if_else(grepl("工商專校", flag_person$adegreeu1),
+                  0,
+                  flag_person$err_adegreeu1)
+        flag_person$err_adegreeu1 <-
+          if_else(grepl("工商專科學校", flag_person$adegreeu1),
+                  0,
+                  flag_person$err_adegreeu1)
+        
         flag_person$err_adegreeu1 <-
           if_else(grepl("護專", flag_person$adegreeu1),
                   0,
@@ -16562,10 +16653,6 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
                   1,
                   flag_person$err_adegreeu1)
         flag_person$err_adegreeu1 <-
-          if_else(grepl("工商", flag_person$adegreeu1),
-                  1,
-                  flag_person$err_adegreeu1)
-        flag_person$err_adegreeu1 <-
           if_else(grepl("工家", flag_person$adegreeu1),
                   1,
                   flag_person$err_adegreeu1)
@@ -16583,10 +16670,6 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
                   flag_person$err_adegreeu1)
         flag_person$err_adegreeu1 <-
           if_else(grepl("商海", flag_person$adegreeu1),
-                  1,
-                  flag_person$err_adegreeu1)
-        flag_person$err_adegreeu1 <-
-          if_else(grepl("海事", flag_person$adegreeu1),
                   1,
                   flag_person$err_adegreeu1)
         flag_person$err_adegreeu1 <-
@@ -16682,15 +16765,6 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
         flag_person$err_adegreeu1 <-
           if_else(grepl("所", flag_person$adegreeu1),
                   1,
-                  flag_person$err_adegreeu1)
-        #"工商專校"、"工商專科學校"正確
-        flag_person$err_adegreeu1 <-
-          if_else(grepl("工商專校", flag_person$adegreeu1),
-                  0,
-                  flag_person$err_adegreeu1)
-        flag_person$err_adegreeu1 <-
-          if_else(grepl("工商專科學校", flag_person$adegreeu1),
-                  0,
                   flag_person$err_adegreeu1)
         
         #副學士學位畢業系所（一）
@@ -20540,6 +20614,8 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
         # （請確認畢業科系所正確全稱，若未取得畢業/學位證書，則不認定取得該學位。另，各學位別學歷資訊請依欄位說明，按各學位別欄位分別填寫）
         # （請確認畢業學校正確名稱）
         # （請確認畢業學校所在國家正確名稱）
+        # （請依*員畢業證書確認畢業學校正確名稱）
+        # （請再協助確認上述人員畢業學校正確完整名稱，或修正錯字）
         # （請確認並修正填寫畢業學校正確名稱。且若副學士或專科畢業學校為(科技/空中)大學、(技術)學院或其他技職校院，且確認為專科學制，請於「副學士或專科畢業學校」欄位中在校名後註記專科學制或專科部）
         # （請依照*員『*士』學位畢業證書，填寫正確之學校名稱。）
         # （請依照*員『*士』學位畢業證書，填寫正確之系所名稱。）
@@ -20549,6 +20625,8 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
         # （請依照上開人員碩士學位畢業證書，填寫正確之系所名稱全稱。）
         # （若該名教員似具二個以上學士學位，如確取得二個學士學位，則請按取得學位年月日，由近而遠(由最近取得至次近取得)依序分別填寫『學士學位畢業科系(一) 』(最近)、『學士學位畢業科系(二) 』(次近)，倘無法區分時間先後順序，如雙主修，亦請皆填列。）
         #
+        #（請依照*員『*士』學位畢業證書，填寫正確之學校名稱，且學校與系所之名稱應依欄位說明按欄位分別填寫，或刪除贅字。）
+        
         # 40學分班之文字
         # （學分班非屬『學位授予法』規定之學位別，且依該法規定，須修業期滿、修滿應修學分並符畢業條件，始能獲頒學位。若*員經確認未獲碩士學位，請於碩士學位畢業學校國別、畢業學校、畢業系所三欄填『N』）
         # （學分班非屬『學位授予法』規定之學位別，且依該法規定，須修業期滿、修滿應修學分並符畢業條件，始能獲頒學位。若*員經確認未獲學士學位，請於學士學位畢業學校國別、畢業學校、畢業科系三欄填『N』）
@@ -21562,6 +21640,7 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
           scales::percent(flag_person_wide_flag95$err_staff, accuracy = 0.1)
         
         #請確認貴校所填專任教師、代理教師、校長、教官、主任教官名單資料是否完整。
+        #請確認是否完整填報專任教員名單資料。
         
         flag_person_wide_flag95$err_flag_txt <- paste0(
           "統計處專任教師人數：",
@@ -22147,8 +22226,8 @@ SELECT [name] FROM [plat5_edhr].[dbo].[row_tables]
                  replacement = "",
                  flag_person_wide_flag98$flag98_r)
           
-          #（請確認並修正該員學歷資料）
-          #（請確認*員最高學歷資訊）
+          #（請確認並修正*員最高學歷資訊）
+          #（請確認並修正*員出生年月日）
           
           #產生檢誤報告文字
           flag98_temp <- flag_person_wide_flag98 %>%
